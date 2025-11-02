@@ -1,0 +1,25 @@
+{
+  "name": "drawing-game-zhipu-ai",
+  "version": "1.0.0",
+  "description": "你画我猜游戏 - 智谱清言AI版，具有高级形状识别功能",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8080",
+    "dev": "python -m http.server 8080"
+  },
+  "keywords": [
+    "drawing-game",
+    "ai",
+    "shape-recognition",
+    "zhipu-ai",
+    "canvas",
+    "game"
+  ],
+  "author": "sgy4332",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sgy4332/drawing-game-zhipu-ai.git"
+  },
+  "homepage": "https://drawing-game-zhipu-ai.vercel.app"
+}

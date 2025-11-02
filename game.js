@@ -534,34 +534,32 @@ class DrawingGame {
                     messages: [
                         {
                             role: 'system',
-                            content: `你是一个专业的你画我猜游戏AI分析师。你需要根据绘画的视觉特征来准确猜测画的是什么物品。
+                            content: `你是一个专业的你画我猜游戏AI形状识别专家。你需要根据绘画的形状特征来精确猜测画的是什么物品。
 
-分析规则：
-1. 仔细分析颜色组合和绘画特征
-2. 基于笔画数量、复杂度、覆盖率等数据推理
-3. 考虑线条特征（曲线、直线）与物品类型的关联
-4. 优先选择最符合视觉特征的答案
-5. 只回答具体的物品名称，2-4个汉字
+形状识别优先级：
+1. 🎯 主要形状：圆形、矩形、三角形、线条、螺旋、不规则
+2. 📐 比例特征：宽高比、横向/纵向/正方形
+3. 🔧 结构特征：轮廓线、内部细节、对称性、闭合图形
+4. 🧭 方向特征：水平、垂直、对角线方向
+5. 🎨 颜色信息：次要参考，辅助形状判断
 
-常见物品分类：
-🍎 食物水果：苹果、香蕉、葡萄、西瓜、蛋糕、冰淇淋、汉堡、披萨
-🐾 动物：猫、狗、鸟、鱼、兔子、蝴蝶、大象、狮子、熊猫、企鹅
-🚗 交通：汽车、火车、飞机、轮船、自行车、摩托车、火箭
-🏠 建筑：房子、城堡、桥、塔、学校、医院
-🌞 自然：太阳、月亮、星星、云、雨、彩虹、山、树、花、草
-📱 用品：手机、电脑、电视、书、笔、眼镜、帽子、鞋子、包
-⚽ 运动：足球、篮球、网球、球拍、自行车
-🎵 艺术：钢琴、吉他、音符、画笔、颜料
+形状与物品关联规则：
+- 圆形/椭圆 → 太阳、月亮、苹果、篮球、钟表、气球、花朵、爱心
+- 矩形/方形 → 房子、窗户、书本、手机、电视、桌子、门
+- 三角形 → 三角旗、屋顶、三角尺、松树、金字塔
+- 线条形状 → 河流、道路、电线、树枝、雨伞
+- 对称形状 → 蝴蝶、飞机、人脸、叶子
+- 不规则形状 → 云朵、树木、山脉、动物
 
-记住：要基于实际的绘画特征进行逻辑推理，而不是随机猜测。`
+重要：优先根据形状特征进行判断，颜色只是辅助参考。必须基于实际绘制的几何形状来推理物品。只回答具体物品名称，2-4个汉字。`
                         },
                         {
                             role: 'user',
-                            content: `绘画特征分析：${analysis}\n\n请基于这些特征进行逻辑推理，给出最可能的物品名称。只需要回答物品名称，不要解释推理过程。`
+                            content: `形状分析结果：${analysis}\n\n根据形状特征优先判断，给出最可能的物品名称。请只回答物品名称。`
                         }
                     ],
                     max_tokens: 20,
-                    temperature: 0.3
+                    temperature: 0.1
                 })
             });
 
@@ -609,23 +607,59 @@ class DrawingGame {
     }
 
     analyzeCanvas() {
-        // 高级画布分析
+        // 高级形状分析系统
         const features = {
             colors: new Set(),
             strokeCount: 0,
             totalPoints: 0,
             avgBrushSize: 0,
-            hasCurves: false,
-            hasStraightLines: false,
             coverage: 0,
             complexity: 'simple',
-            dominantRegions: [],
-            patterns: []
+
+            // 形状特征
+            shapes: {
+                circular: false,        // 圆形
+                rectangular: false,      // 矩形
+                triangular: false,       // 三角形
+                linear: false,           // 线条
+                spiral: false,           // 螺旋
+                irregular: false,        // 不规则形状
+                symmetric: false,        // 对称性
+                closed: false            // 闭合图形
+            },
+
+            // 结构特征
+            structure: {
+                hasOutline: false,      // 有轮廓
+                hasFill: false,          // 有填充
+                hasDetails: false,      // 有细节
+                hasTexture: false,      // 有纹理
+                multipleParts: false,   // 多部分组成
+                connected: true         // 连通性
+            },
+
+            // 比例特征
+            proportions: {
+                width: 0,
+                height: 0,
+                aspectRatio: 1,         // 宽高比
+                centerX: 0,
+                centerY: 0
+            },
+
+            // 方向特征
+            orientation: {
+                horizontal: false,      // 水平主导
+                vertical: false,        // 垂直主导
+                diagonal: false,        // 对角线
+                radial: false           // 放射状
+            }
         };
 
         // 分析每个路径
         const brushSizes = [];
         let minX = this.canvasWidth, maxX = 0, minY = this.canvasHeight, maxY = 0;
+        const allPoints = [];
 
         this.paths.forEach(path => {
             if (path.tool === 'eraser') return;
@@ -634,39 +668,33 @@ class DrawingGame {
             features.colors.add(path.color);
             brushSizes.push(path.size);
 
-            // 分析路径点
-            path.points.forEach((point, index) => {
+            // 收集所有点用于形状分析
+            path.points.forEach(point => {
+                allPoints.push(point);
                 features.totalPoints++;
                 minX = Math.min(minX, point.x);
                 maxX = Math.max(maxX, point.x);
                 minY = Math.min(minY, point.y);
                 maxY = Math.max(maxY, point.y);
-
-                // 检测曲线和直线
-                if (index > 0) {
-                    const prevPoint = path.points[index - 1];
-                    const angle = Math.atan2(point.y - prevPoint.y, point.x - prevPoint.x);
-
-                    if (index > 1) {
-                        const prevAngle = Math.atan2(
-                            prevPoint.y - path.points[index - 2].y,
-                            prevPoint.x - path.points[index - 2].x
-                        );
-                        const angleDiff = Math.abs(angle - prevAngle);
-
-                        if (angleDiff > Math.PI / 6) { // 30度以上变化认为是曲线
-                            features.hasCurves = true;
-                        } else {
-                            features.hasStraightLines = true;
-                        }
-                    }
-                }
             });
         });
 
-        // 计算覆盖区域
-        const coveredArea = (maxX - minX) * (maxY - minY);
-        features.coverage = coveredArea / (this.canvasWidth * this.canvasHeight);
+        // 计算基本比例信息
+        features.proportions.width = maxX - minX;
+        features.proportions.height = maxY - minY;
+        features.proportions.aspectRatio = features.proportions.width / features.proportions.height;
+        features.proportions.centerX = (minX + maxX) / 2;
+        features.proportions.centerY = (minY + maxY) / 2;
+        features.coverage = (features.proportions.width * features.proportions.height) / (this.canvasWidth * this.canvasHeight);
+
+        // 核心形状分析
+        this.analyzeShapes(features, allPoints);
+
+        // 结构分析
+        this.analyzeStructure(features);
+
+        // 方向分析
+        this.analyzeOrientation(features, allPoints);
 
         // 计算平均画笔大小
         if (brushSizes.length > 0) {
@@ -684,92 +712,495 @@ class DrawingGame {
             features.complexity = 'complex';
         }
 
-        // 分析绘画模式
-        features.patterns = this.analyzePatterns(features);
-
-        // 生成详细描述
-        return this.generateDetailedDescription(features);
+        // 生成基于形状的详细描述
+        return this.generateShapeBasedDescription(features);
     }
 
-    analyzePatterns(features) {
-        const patterns = [];
+    analyzeShapes(features, points) {
+        if (points.length < 3) return;
 
-        // 颜色模式分析
-        if (features.colors.has('#FF0000') || features.colors.has('#FFA500')) {
-            patterns.push('暖色调，可能是食物或太阳');
-        }
-        if (features.colors.has('#0000FF') || features.colors.has('#00FFFF')) {
-            patterns.push('冷色调，可能是天空或水');
-        }
-        if (features.colors.has('#00FF00') || features.colors.has('#8B4513')) {
-            patterns.push('自然色调，可能是植物或土地');
+        // 1. 圆形检测
+        const circleScore = this.detectCircle(points, features.proportions);
+        if (circleScore > 0.6) {
+            features.shapes.circular = true;
+            features.shapes.closed = true;
         }
 
-        // 笔画模式分析
-        if (features.strokeCount <= 2 && features.hasCurves) {
-            patterns.push('简单曲线，可能是圆形物体');
-        } else if (features.strokeCount >= 5 && features.avgBrushSize < 5) {
-            patterns.push('精细描绘，可能是复杂物体');
+        // 2. 矩形检测
+        const rectangleScore = this.detectRectangle(points, features.proportions);
+        if (rectangleScore > 0.6) {
+            features.shapes.rectangular = true;
+            features.shapes.closed = true;
         }
 
-        // 覆盖率分析
-        if (features.coverage > 0.6) {
-            patterns.push('画面饱满，可能是大型物体');
-        } else if (features.coverage < 0.2) {
-            patterns.push('画面简洁，可能是小物体');
+        // 3. 三角形检测
+        const triangleScore = this.detectTriangle(points, features.proportions);
+        if (triangleScore > 0.6) {
+            features.shapes.triangular = true;
+            features.shapes.closed = true;
         }
 
-        // 形状特征分析
-        if (features.hasCurves && !features.hasStraightLines) {
-            patterns.push('主要是曲线，可能是自然物体');
-        } else if (features.hasStraightLines && !features.hasCurves) {
-            patterns.push('主要是直线，可能是人造物体');
+        // 4. 直线检测
+        const lineScore = this.detectLine(points);
+        if (lineScore > 0.7) {
+            features.shapes.linear = true;
+        }
+
+        // 5. 对称性检测
+        const symmetryScore = this.detectSymmetry(points, features.proportions);
+        if (symmetryScore > 0.5) {
+            features.shapes.symmetric = true;
+        }
+
+        // 6. 螺旋检测
+        const spiralScore = this.detectSpiral(points, features.proportions);
+        if (spiralScore > 0.5) {
+            features.shapes.spiral = true;
+        }
+
+        // 7. 如果没有检测到规则形状，标记为不规则
+        if (!features.shapes.circular && !features.shapes.rectangular &&
+            !features.shapes.triangular && !features.shapes.linear) {
+            features.shapes.irregular = true;
+        }
+    }
+
+    detectCircle(points, proportions) {
+        if (points.length < 8) return 0;
+
+        // 计算圆形度：宽高比接近1且形状闭合
+        const aspectRatio = Math.min(proportions.width / proportions.height,
+                                     proportions.height / proportions.width);
+
+        // 计算点到中心的距离变化
+        const centerX = proportions.centerX;
+        const centerY = proportions.centerY;
+        const distances = points.map(p =>
+            Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2))
+        );
+
+        const avgDistance = distances.reduce((a, b) => a + b, 0) / distances.length;
+        const distanceVariance = distances.reduce((sum, d) => sum + Math.pow(d - avgDistance, 2), 0) / distances.length;
+        const distanceStdDev = Math.sqrt(distanceVariance);
+
+        // 圆形得分：基于宽高比和距离标准差
+        const aspectScore = aspectRatio;
+        const uniformityScore = 1 - Math.min(distanceStdDev / avgDistance, 1);
+
+        return (aspectScore * 0.3 + uniformityScore * 0.7);
+    }
+
+    detectRectangle(points, proportions) {
+        if (points.length < 4) return 0;
+
+        // 计算矩形的四个角
+        const corners = this.findCorners(points);
+        if (corners.length !== 4) return 0.3;
+
+        // 检查角度是否接近90度
+        let angleScore = 0;
+        for (let i = 0; i < 4; i++) {
+            const p1 = corners[i];
+            const p2 = corners[(i + 1) % 4];
+            const p3 = corners[(i + 2) % 4];
+
+            const angle = this.calculateAngle(p1, p2, p3);
+            const rightAngleScore = 1 - Math.abs(angle - Math.PI / 2) / (Math.PI / 2);
+            angleScore += rightAngleScore;
+        }
+        angleScore /= 4;
+
+        // 检查对边是否平行且相等
+        const parallelScore = this.checkParallelism(corners);
+
+        return (angleScore * 0.6 + parallelScore * 0.4);
+    }
+
+    detectTriangle(points, proportions) {
+        if (points.length < 3) return 0;
+
+        // 找到三角形的三个顶点
+        const corners = this.findCorners(points);
+        if (corners.length !== 3) return 0.2;
+
+        // 检查是否能形成有效的三角形
+        const area = this.calculateTriangleArea(corners[0], corners[1], corners[2]);
+        if (area < 100) return 0; // 面积太小
+
+        // 计算三角形的规整度
+        const sides = [
+            this.distance(corners[0], corners[1]),
+            this.distance(corners[1], corners[2]),
+            this.distance(corners[2], corners[0])
+        ];
+
+        const perimeter = sides.reduce((a, b) => a + b, 0);
+        const regularityScore = 1 - (Math.max(...sides) - Math.min(...sides)) / perimeter;
+
+        return regularityScore * 0.8;
+    }
+
+    detectLine(points) {
+        if (points.length < 2) return 0;
+
+        // 计算点的线性拟合度
+        const lineFit = this.calculateLinearFit(points);
+
+        // 检查主要方向
+        const orientation = this.calculateLineOrientation(points);
+        const orientationScore = Math.max(Math.abs(orientation.x), Math.abs(orientation.y));
+
+        return lineFit * 0.7 + orientationScore * 0.3;
+    }
+
+    detectSymmetry(points, proportions) {
+        const centerX = proportions.centerX;
+        const centerY = proportions.centerY;
+
+        // 检查水平对称性
+        const horizontalSymmetry = this.checkSymmetry(points, centerX, 'horizontal');
+
+        // 检查垂直对称性
+        const verticalSymmetry = this.checkSymmetry(points, centerY, 'vertical');
+
+        return Math.max(horizontalSymmetry, verticalSymmetry);
+    }
+
+    detectSpiral(points, proportions) {
+        if (points.length < 10) return 0;
+
+        const centerX = proportions.centerX;
+        const centerY = proportions.centerY;
+
+        // 计算距离中心的距离变化模式
+        const distances = points.map(p =>
+            Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2))
+        );
+
+        // 检查距离是否呈现递增或递减趋势
+        let spiralScore = 0;
+        let increasingCount = 0;
+        let decreasingCount = 0;
+
+        for (let i = 1; i < distances.length; i++) {
+            if (distances[i] > distances[i-1]) increasingCount++;
+            else if (distances[i] < distances[i-1]) decreasingCount++;
+        }
+
+        const trendScore = Math.max(increasingCount, decreasingCount) / (distances.length - 1);
+
+        // 检查角度变化（螺旋应该有持续的角度变化）
+        const angleVariation = this.calculateAngleVariation(points, centerX, centerY);
+
+        return (trendScore * 0.6 + angleVariation * 0.4);
+    }
+
+    analyzeStructure(features) {
+        // 检测是否有轮廓（通常是外部的大路径）
+        if (features.strokeCount > 1) {
+            features.structure.hasOutline = true;
+        }
+
+        // 检测是否有内部细节
+        if (features.strokeCount > 3 || features.complexity === 'complex') {
+            features.structure.hasDetails = true;
+        }
+
+        // 检测是否是多部分组成
+        if (features.strokeCount > 5) {
+            features.structure.multipleParts = true;
+        }
+    }
+
+    analyzeOrientation(features, points) {
+        if (points.length < 2) return;
+
+        // 计算主要方向向量
+        let totalDx = 0, totalDy = 0;
+        for (let i = 1; i < points.length; i++) {
+            totalDx += points[i].x - points[i-1].x;
+            totalDy += points[i].y - points[i-1].y;
+        }
+
+        const avgDx = totalDx / (points.length - 1);
+        const avgDy = totalDy / (points.length - 1);
+
+        // 判断主导方向
+        const angle = Math.atan2(avgDy, avgDx);
+
+        if (Math.abs(angle) < Math.PI / 8 || Math.abs(angle - Math.PI) < Math.PI / 8) {
+            features.orientation.horizontal = true;
+        } else if (Math.abs(angle - Math.PI / 2) < Math.PI / 8 || Math.abs(angle + Math.PI / 2) < Math.PI / 8) {
+            features.orientation.vertical = true;
         } else {
-            patterns.push('混合线条，可能是复合物体');
+            features.orientation.diagonal = true;
         }
-
-        return patterns;
     }
 
-    generateDetailedDescription(features) {
+    // 辅助数学函数
+    findCorners(points) {
+        if (points.length < 3) return [];
+
+        // 使用凸包算法找到角点
+        const convexHull = this.convexHull(points);
+        return convexHull;
+    }
+
+    convexHull(points) {
+        // Graham扫描算法实现凸包
+        if (points.length < 3) return points;
+
+        // 找到最下面的点（y最小，如果相同则x最小）
+        let start = points[0];
+        for (let i = 1; i < points.length; i++) {
+            if (points[i].y < start.y || (points[i].y === start.y && points[i].x < start.x)) {
+                start = points[i];
+            }
+        }
+
+        // 按极角排序
+        const sorted = points.filter(p => p !== start).sort((a, b) => {
+            const angleA = Math.atan2(a.y - start.y, a.x - start.x);
+            const angleB = Math.atan2(b.y - start.y, b.x - start.x);
+            return angleA - angleB;
+        });
+
+        const hull = [start];
+        for (const point of sorted) {
+            while (hull.length > 1 && this.crossProduct(hull[hull.length - 2], hull[hull.length - 1], point) <= 0) {
+                hull.pop();
+            }
+            hull.push(point);
+        }
+
+        return hull;
+    }
+
+    crossProduct(o, a, b) {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    }
+
+    calculateAngle(p1, p2, p3) {
+        const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+        const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+
+        const dot = v1.x * v2.x + v1.y * v2.y;
+        const det = v1.x * v2.y - v1.y * v2.x;
+
+        return Math.atan2(det, dot);
+    }
+
+    calculateTriangleArea(p1, p2, p3) {
+        return Math.abs((p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y)) / 2);
+    }
+
+    distance(p1, p2) {
+        return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    }
+
+    calculateLinearFit(points) {
+        if (points.length < 2) return 0;
+
+        const n = points.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+
+        points.forEach(p => {
+            sumX += p.x;
+            sumY += p.y;
+            sumXY += p.x * p.y;
+            sumX2 += p.x * p.x;
+        });
+
+        const denominator = n * sumX2 - sumX * sumX;
+        if (Math.abs(denominator) < 0.001) return 1; // 垂直线
+
+        const slope = (n * sumXY - sumX * sumY) / denominator;
+        const intercept = (sumY - slope * sumX) / n;
+
+        // 计算R²
+        const meanY = sumY / n;
+        let ssTotal = 0, ssResidual = 0;
+
+        points.forEach(p => {
+            const predicted = slope * p.x + intercept;
+            ssTotal += Math.pow(p.y - meanY, 2);
+            ssResidual += Math.pow(p.y - predicted, 2);
+        });
+
+        return ssTotal > 0 ? 1 - (ssResidual / ssTotal) : 0;
+    }
+
+    calculateLineOrientation(points) {
+        if (points.length < 2) return { x: 0, y: 0 };
+
+        let dx = 0, dy = 0;
+        for (let i = 1; i < points.length; i++) {
+            dx += points[i].x - points[i-1].x;
+            dy += points[i].y - points[i-1].y;
+        }
+
+        const length = Math.sqrt(dx * dx + dy * dy);
+        return length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 };
+    }
+
+    checkParallelism(corners) {
+        if (corners.length !== 4) return 0;
+
+        const sides = [
+            { start: corners[0], end: corners[1] },
+            { start: corners[1], end: corners[2] },
+            { start: corners[2], end: corners[3] },
+            { start: corners[3], end: corners[0] }
+        ];
+
+        const vectors = sides.map(side => ({
+            x: side.end.x - side.start.x,
+            y: side.end.y - side.start.y
+        }));
+
+        // 检查对边是否平行
+        const parallel1 = this.areVectorsParallel(vectors[0], vectors[2]);
+        const parallel2 = this.areVectorsParallel(vectors[1], vectors[3]);
+
+        return (parallel1 + parallel2) / 2;
+    }
+
+    areVectorsParallel(v1, v2) {
+        const cross = v1.x * v2.y - v1.y * v2.x;
+        return 1 - Math.min(Math.abs(cross) / (Math.sqrt(v1.x * v1.x + v1.y * v1.y) * Math.sqrt(v2.x * v2.x + v2.y * v2.y) + 0.001), 1);
+    }
+
+    checkSymmetry(points, centerLine, axis) {
+        let symmetricPoints = 0;
+        const tolerance = 20; // 对称容差
+
+        points.forEach(point => {
+            if (axis === 'horizontal') {
+                const mirrorX = 2 * centerLine - point.x;
+                const hasMirror = points.some(p =>
+                    Math.abs(p.x - mirrorX) < tolerance && Math.abs(p.y - point.y) < tolerance
+                );
+                if (hasMirror) symmetricPoints++;
+            } else {
+                const mirrorY = 2 * centerLine - point.y;
+                const hasMirror = points.some(p =>
+                    Math.abs(p.x - point.x) < tolerance && Math.abs(p.y - mirrorY) < tolerance
+                );
+                if (hasMirror) symmetricPoints++;
+            }
+        });
+
+        return points.length > 0 ? symmetricPoints / points.length : 0;
+    }
+
+    calculateAngleVariation(points, centerX, centerY) {
+        if (points.length < 3) return 0;
+
+        const angles = points.map(p => Math.atan2(p.y - centerY, p.x - centerX));
+        let totalVariation = 0;
+
+        for (let i = 1; i < angles.length; i++) {
+            let diff = angles[i] - angles[i-1];
+            // 处理角度跨越-π到π的情况
+            if (diff > Math.PI) diff -= 2 * Math.PI;
+            if (diff < -Math.PI) diff += 2 * Math.PI;
+            totalVariation += Math.abs(diff);
+        }
+
+        return Math.min(totalVariation / (angles.length - 1) / Math.PI, 1);
+    }
+
+    generateShapeBasedDescription(features) {
         const description = [];
 
-        // 基础信息
-        description.push(`绘画使用了${features.colors.size}种颜色`);
+        // 1. 首先报告形状特征（最重要）
+        const shapeDescriptions = [];
 
-        // 颜色详情
-        const colorList = Array.from(features.colors).map(color => {
-            const colorNames = {
-                '#FF0000': '红色', '#0000FF': '蓝色', '#00FF00': '绿色',
-                '#FFFF00': '黄色', '#FFA500': '橙色', '#800080': '紫色',
-                '#FFC0CB': '粉色', '#A52A2A': '棕色', '#000000': '黑色'
-            };
-            return colorNames[color] || '其他颜色';
-        }).filter(Boolean);
-
-        if (colorList.length > 0) {
-            description.push(`主要颜色是${colorList.join('、')}`);
+        if (features.shapes.circular) {
+            shapeDescriptions.push('圆形或椭圆形');
+        }
+        if (features.shapes.rectangular) {
+            shapeDescriptions.push('矩形或方形');
+        }
+        if (features.shapes.triangular) {
+            shapeDescriptions.push('三角形');
+        }
+        if (features.shapes.linear) {
+            shapeDescriptions.push('线条形状');
+        }
+        if (features.shapes.spiral) {
+            shapeDescriptions.push('螺旋形状');
+        }
+        if (features.shapes.irregular) {
+            shapeDescriptions.push('不规则形状');
         }
 
-        // 笔画和复杂度
-        description.push(`${features.strokeCount}笔画，${features.complexity === 'very-simple' ? '极其简单' : features.complexity === 'simple' ? '简单' : features.complexity === 'medium' ? '中等复杂' : '复杂'}的绘画`);
+        if (shapeDescriptions.length > 0) {
+            description.push(`画的是${shapeDescriptions.join('或')}`);
+        }
 
-        // 线条特征
+        // 2. 比例信息
+        const aspectRatio = features.proportions.aspectRatio;
+        if (aspectRatio > 1.5) {
+            description.push('横向较宽的形状');
+        } else if (aspectRatio < 0.7) {
+            description.push('纵向较高的形状');
+        } else {
+            description.push('接近正方形的形状');
+        }
+
+        // 3. 结构特征
+        if (features.structure.hasOutline) {
+            description.push('有明确的轮廓线');
+        }
+        if (features.structure.hasDetails) {
+            description.push('包含内部细节');
+        }
+        if (features.structure.multipleParts) {
+            description.push('由多个部分组成');
+        }
+
+        // 4. 对称性
+        if (features.shapes.symmetric) {
+            description.push('具有对称性');
+        }
+        if (features.shapes.closed) {
+            description.push('是闭合的图形');
+        }
+
+        // 5. 方向信息
+        if (features.orientation.horizontal) {
+            description.push('水平方向为主');
+        } else if (features.orientation.vertical) {
+            description.push('垂直方向为主');
+        } else if (features.orientation.diagonal) {
+            description.push('对角线方向');
+        }
+
+        // 6. 复杂度
+        description.push(`绘画${features.complexity === 'very-simple' ? '极其简单' : features.complexity === 'simple' ? '简单' : features.complexity === 'medium' ? '中等复杂' : '复杂'}`);
+
+        // 7. 颜色信息（次要）
+        if (features.colors.size > 0) {
+            const colorList = Array.from(features.colors).map(color => {
+                const colorNames = {
+                    '#FF0000': '红色', '#0000FF': '蓝色', '#00FF00': '绿色',
+                    '#FFFF00': '黄色', '#FFA500': '橙色', '#800080': '紫色',
+                    '#FFC0CB': '粉色', '#A52A2A': '棕色', '#000000': '黑色'
+                };
+                return colorNames[color] || '其他颜色';
+            }).filter(Boolean);
+
+            if (colorList.length > 0) {
+                description.push(`使用${colorList.join('、')}`);
+            }
+        }
+
+        // 8. 线条特征
         if (features.avgBrushSize > 8) {
-            description.push('使用粗线条，可能是轮廓画');
+            description.push('粗线条风格');
         } else if (features.avgBrushSize < 4) {
-            description.push('使用细线条，注重细节');
-        }
-
-        // 添加识别到的模式
-        if (features.patterns.length > 0) {
-            description.push(...features.patterns.slice(0, 3)); // 最多3个模式
-        }
-
-        // 智能推断 - 基于常见的绘画特征
-        const intelligentHints = this.generateIntelligentHints(features);
-        if (intelligentHints.length > 0) {
-            description.push(...intelligentHints);
+            description.push('细线条风格');
         }
 
         return description.join('，');
@@ -824,45 +1255,141 @@ class DrawingGame {
     }
 
     makeSmartGuess(analysis) {
-        // 基于画布分析的智能猜测算法
-        const features = this.extractFeaturesFromAnalysis(analysis);
+        // 基于形状的智能猜测算法
+        const features = this.extractShapeFeaturesFromAnalysis(analysis);
         const candidates = [];
 
-        // 根据颜色特征筛选候选词汇
-        candidates.push(...this.getCandidatesByColor(features));
-
-        // 根据形状特征筛选候选词汇
+        // 优先根据形状特征筛选候选词汇（最重要）
         candidates.push(...this.getCandidatesByShape(features));
+
+        // 次要根据比例特征筛选候选词汇
+        candidates.push(...this.getCandidatesByProportions(features));
+
+        // 根据结构特征筛选候选词汇
+        candidates.push(...this.getCandidatesByStructure(features));
+
+        // 根据方向特征筛选候选词汇
+        candidates.push(...this.getCandidatesByOrientation(features));
+
+        // 根据颜色特征筛选候选词汇（次要）
+        candidates.push(...this.getCandidatesByColor(features));
 
         // 根据复杂度筛选候选词汇
         candidates.push(...this.getCandidatesByComplexity(features));
 
-        // 统计候选频率并选择最可能的
-        const frequency = {};
-        candidates.forEach(word => {
-            frequency[word] = (frequency[word] || 0) + 1;
+        // 新增：基于对称性的候选选择
+        candidates.push(...this.getCandidatesBySymmetry(features));
+
+        // 新增：基于闭合特征的候选选择
+        candidates.push(...this.getCandidatesByClosedShape(features));
+
+        // 新增：基于特殊形状组合的候选选择（优先级较高）
+        candidates.push(...this.getCandidatesByShapeCombinations(features));
+
+        // 新增：基于生活常识的形状推理
+        candidates.push(...this.getCandidatesByCommonSense(features));
+
+        // 统计候选频率并加权评分
+        const score = {};
+        candidates.forEach((word, index) => {
+            // 根据候选来源的不同给予不同权重
+            let weight = 1;
+
+            // 形状特征的权重最高
+            if (index < this.getCandidatesByShape(features).length) {
+                weight = 3;
+            }
+            // 特殊形状组合的权重也很高
+            else if (index >= candidates.length - this.getCandidatesByShapeCombinations(features).length - this.getCandidatesByCommonSense(features).length) {
+                weight = 2.5;
+            }
+            // 颜色特征权重最低
+            else if (index >= candidates.length - this.getCandidatesByColor(features).length) {
+                weight = 0.5;
+            }
+
+            score[word] = (score[word] || 0) + weight;
         });
 
-        // 按频率排序，选择最常出现的
-        const sortedCandidates = Object.entries(frequency)
+        // 按分数排序，选择得分最高的
+        const sortedCandidates = Object.entries(score)
             .sort(([,a], [,b]) => b - a)
             .map(([word]) => word);
 
-        return sortedCandidates.length > 0 ? sortedCandidates[0] : this.words[Math.floor(Math.random() * this.words.length)];
+        // 如果有明确的候选选择，返回最高分；否则随机选择
+        if (sortedCandidates.length > 0 && score[sortedCandidates[0]] > 2) {
+            return sortedCandidates[0];
+        } else {
+            // 如果没有明确的形状特征，根据复杂度进行随机选择
+            const reasonableCandidates = this.getCandidatesByComplexity(features);
+            return reasonableCandidates[Math.floor(Math.random() * reasonableCandidates.length)];
+        }
     }
 
-    extractFeaturesFromAnalysis(analysis) {
+    extractShapeFeaturesFromAnalysis(analysis) {
         const features = {
+            // 形状特征
+            shapes: {
+                circular: false,
+                rectangular: false,
+                triangular: false,
+                linear: false,
+                spiral: false,
+                irregular: false
+            },
+            // 结构特征
+            structure: {
+                hasOutline: false,
+                hasDetails: false,
+                multipleParts: false,
+                symmetric: false,
+                closed: false
+            },
+            // 比例特征
+            proportions: {
+                wide: false,
+                tall: false,
+                square: false
+            },
+            // 方向特征
+            orientation: {
+                horizontal: false,
+                vertical: false,
+                diagonal: false
+            },
+            // 其他特征
             colors: [],
-            hasCurves: false,
-            hasStraightLines: false,
             complexity: 'medium',
             strokeCount: 0,
-            coverage: 0.3,
-            patterns: []
+            coverage: 0.3
         };
 
-        // 解析分析文本
+        // 解析形状特征
+        if (analysis.includes('圆形') || analysis.includes('椭圆形')) features.shapes.circular = true;
+        if (analysis.includes('矩形') || analysis.includes('方形')) features.shapes.rectangular = true;
+        if (analysis.includes('三角形')) features.shapes.triangular = true;
+        if (analysis.includes('线条形状')) features.shapes.linear = true;
+        if (analysis.includes('螺旋形状')) features.shapes.spiral = true;
+        if (analysis.includes('不规则形状')) features.shapes.irregular = true;
+
+        // 解析比例特征
+        if (analysis.includes('横向较宽')) features.proportions.wide = true;
+        if (analysis.includes('纵向较高')) features.proportions.tall = true;
+        if (analysis.includes('接近正方形')) features.proportions.square = true;
+
+        // 解析结构特征
+        if (analysis.includes('明确的轮廓线')) features.structure.hasOutline = true;
+        if (analysis.includes('内部细节')) features.structure.hasDetails = true;
+        if (analysis.includes('多个部分组成')) features.structure.multipleParts = true;
+        if (analysis.includes('具有对称性')) features.shapes.symmetric = true;
+        if (analysis.includes('闭合的图形')) features.shapes.closed = true;
+
+        // 解析方向特征
+        if (analysis.includes('水平方向为主')) features.orientation.horizontal = true;
+        if (analysis.includes('垂直方向为主')) features.orientation.vertical = true;
+        if (analysis.includes('对角线方向')) features.orientation.diagonal = true;
+
+        // 解析颜色特征
         if (analysis.includes('红色')) features.colors.push('red');
         if (analysis.includes('蓝色')) features.colors.push('blue');
         if (analysis.includes('绿色')) features.colors.push('green');
@@ -872,9 +1399,9 @@ class DrawingGame {
         if (analysis.includes('粉色')) features.colors.push('pink');
         if (analysis.includes('棕色')) features.colors.push('brown');
 
-        if (analysis.includes('曲线')) features.hasCurves = true;
-        if (analysis.includes('直线')) features.hasStraightLines = true;
+        // 解析复杂度
         if (analysis.includes('极其简单') || analysis.includes('简单')) features.complexity = 'simple';
+        if (analysis.includes('中等复杂')) features.complexity = 'medium';
         if (analysis.includes('复杂')) features.complexity = 'complex';
 
         // 提取笔画数量
@@ -908,12 +1435,70 @@ class DrawingGame {
     getCandidatesByShape(features) {
         const candidates = [];
 
-        if (features.hasCurves && !features.hasStraightLines) {
-            candidates.push('太阳', '月亮', '苹果', '爱心', '气球', '花朵');
-        } else if (features.hasStraightLines && !features.hasCurves) {
-            candidates.push('房子', '汽车', '书本', '手机', '电视', '桌子');
-        } else {
-            candidates.push('小猫', '小狗', '自行车', '飞机', '蝴蝶');
+        // 基于主要形状选择候选词
+        if (features.shapes.circular) {
+            candidates.push('太阳', '月亮', '苹果', '篮球', '钟表', '气球', '花朵', '爱心', '足球', '轮子');
+        }
+        if (features.shapes.rectangular) {
+            candidates.push('房子', '窗户', '书本', '手机', '电视', '桌子', '门', '电脑', '画框');
+        }
+        if (features.shapes.triangular) {
+            candidates.push('三角旗', '屋顶', '三角尺', '松树', '金字塔', '箭头');
+        }
+        if (features.shapes.linear) {
+            candidates.push('河流', '道路', '电线', '树枝', '雨伞', '旗杆', '铅笔');
+        }
+        if (features.shapes.spiral) {
+            candidates.push('螺旋', '海螺', '弹簧', '旋涡');
+        }
+        if (features.shapes.irregular) {
+            candidates.push('云朵', '树木', '山脉', '火焰', '水滴', '石头');
+        }
+
+        return candidates.filter(word => this.words.includes(word));
+    }
+
+    getCandidatesByProportions(features) {
+        const candidates = [];
+
+        if (features.proportions.wide) {
+            candidates.push('河流', '道路', '桥', '桌子', '床', '汽车');
+        }
+        if (features.proportions.tall) {
+            candidates.push('树', '房子', '塔', '火箭', '烟囱', '旗杆');
+        }
+        if (features.proportions.square) {
+            candidates.push('窗户', '画框', '电视', '手机', '书籍', '镜子');
+        }
+
+        return candidates.filter(word => this.words.includes(word));
+    }
+
+    getCandidatesByStructure(features) {
+        const candidates = [];
+
+        if (features.structure.hasOutline && features.structure.hasDetails) {
+            candidates.push('人脸', '动物', '花朵', '汽车', '房子');
+        } else if (features.structure.hasOutline && !features.hasDetails) {
+            candidates.push('太阳', '月亮', '心形', '星形', '圆形');
+        } else if (features.structure.multipleParts) {
+            candidates.push('汽车', '自行车', '飞机', '火车', '花束');
+        }
+
+        return candidates.filter(word => this.words.includes(word));
+    }
+
+    getCandidatesByOrientation(features) {
+        const candidates = [];
+
+        if (features.orientation.horizontal) {
+            candidates.push('地平线', '河流', '道路', '桥', '桌子');
+        }
+        if (features.orientation.vertical) {
+            candidates.push('树干', '旗杆', '烟囱', '电线杆', '塔');
+        }
+        if (features.orientation.diagonal) {
+            candidates.push('楼梯', '斜坡', '山坡', '屋顶');
         }
 
         return candidates.filter(word => this.words.includes(word));
@@ -928,6 +1513,108 @@ class DrawingGame {
             candidates = ['小猫', '汽车', '飞机', '房子', '自行车', '钢琴'];
         } else {
             candidates = ['树木', '花朵', '气球', '书包', '帽子'];
+        }
+
+        return candidates.filter(word => this.words.includes(word));
+    }
+
+    // 新增：基于对称性的候选选择
+    getCandidatesBySymmetry(features) {
+        const candidates = [];
+
+        if (features.shapes.symmetric) {
+            if (features.shapes.circular) {
+                candidates.push('太阳', '月亮', '时钟', '球类', '花朵', '车轮');
+            } else if (features.shapes.rectangular) {
+                candidates.push('窗户', '门', '电视', '画框', '镜子');
+            } else {
+                candidates.push('蝴蝶', '飞机', '人脸', '叶子', '雪花');
+            }
+        }
+
+        return candidates.filter(word => this.words.includes(word));
+    }
+
+    // 新增：基于闭合特征的候选选择
+    getCandidatesByClosedShape(features) {
+        const candidates = [];
+
+        if (features.shapes.closed) {
+            if (features.shapes.circular) {
+                candidates.push('太阳', '月亮', '苹果', '篮球', '气球', '花朵', '时钟', '轮子');
+            } else if (features.shapes.rectangular) {
+                candidates.push('房子', '窗户', '书本', '手机', '电视', '桌子', '门');
+            } else if (features.shapes.triangular) {
+                candidates.push('屋顶', '三角旗', '松树', '金字塔');
+            }
+        } else {
+            // 非闭合图形
+            candidates.push('河流', '道路', '树枝', '电线', '旗杆', '铅笔', '线条');
+        }
+
+        return candidates.filter(word => this.words.includes(word));
+    }
+
+    // 新增：基于特殊形状组合的候选选择
+    getCandidatesByShapeCombinations(features) {
+        const candidates = [];
+
+        // 圆形 + 对称 = 太阳、月亮、时钟
+        if (features.shapes.circular && features.shapes.symmetric) {
+            candidates.push('太阳', '月亮', '时钟', '球类', '花朵');
+        }
+
+        // 矩形 + 有细节 = 房子、手机、电视
+        if (features.shapes.rectangular && features.structure.hasDetails) {
+            candidates.push('房子', '手机', '电视', '电脑', '窗户');
+        }
+
+        // 不规则 + 多部分 = 树木、动物、云朵
+        if (features.shapes.irregular && features.structure.multipleParts) {
+            candidates.push('树木', '云朵', '山脉', '动物', '火焰');
+        }
+
+        // 线条 + 水平 = 河流、道路、地平线
+        if (features.shapes.linear && features.orientation.horizontal) {
+            candidates.push('河流', '道路', '桥', '地平线');
+        }
+
+        // 螺旋 + 闭合 = 海螺、旋涡
+        if (features.shapes.spiral && features.shapes.closed) {
+            candidates.push('海螺', '旋涡', '弹簧', '螺旋');
+        }
+
+        return candidates.filter(word => this.words.includes(word));
+    }
+
+    // 新增：基于生活常识的形状推理
+    getCandidatesByCommonSense(features) {
+        const candidates = [];
+
+        // 基于常见形状-物品关联
+        if (features.shapes.circular && features.proportions.wide) {
+            candidates.push('太阳', '月亮', '车轮');
+        }
+
+        if (features.shapes.rectangular && features.proportions.tall) {
+            candidates.push('房子', '建筑', '塔');
+        }
+
+        if (features.shapes.triangular && features.orientation.vertical) {
+            candidates.push('松树', '屋顶', '箭头');
+        }
+
+        // 基于颜色和形状的组合
+        if (features.colors.includes('red') && features.shapes.circular) {
+            candidates.push('太阳', '苹果');
+        }
+
+        if (features.colors.includes('green') && features.shapes.irregular) {
+            candidates.push('树木', '树叶');
+        }
+
+        if (features.colors.includes('blue') && features.shapes.linear) {
+            candidates.push('河流', '天空');
         }
 
         return candidates.filter(word => this.words.includes(word));
