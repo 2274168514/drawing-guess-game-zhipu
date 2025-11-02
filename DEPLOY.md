@@ -6,22 +6,24 @@
 
 ### ✅ 已完成的配置：
 - [x] 形状识别系统升级完成
-- [x] Vercel配置文件 (`vercel.json`) 已创建
+- [x] 移除了冲突的Vercel配置文件（使用自动检测）
 - [x] 项目配置文件 (`package.json`) 已创建
 - [x] 代码已推送到GitHub仓库
 - [x] 高级几何形状检测算法已集成
 - [x] 智谱清言AI API已配置
+- [x] 修复了Vercel部署配置冲突
 
 ### 🚀 部署步骤：
 
 #### 方法1：通过Vercel网页界面（推荐）
 1. 访问 [vercel.com](https://vercel.com)
 2. 使用GitHub账号登录
-3. 点击 "New Project"
+3. 点击 "Add New..." → "Project"
 4. 选择你的GitHub仓库：`2274168514/drawing-guess-game-zhipu`
 5. 点击 "Import"
-6. 保留默认设置（Framework Preset: Other）
-7. 点击 "Deploy"
+6. **Vercel会自动检测为静态站点**
+7. 确认Framework Preset为 "Other" 或保持默认
+8. 点击 "Deploy"
 
 #### 方法2：使用Vercel CLI
 ```bash
@@ -51,7 +53,6 @@ vercel --prod
 ├── game.js             # 核心游戏逻辑（1713行代码）
 ├── README.md           # 项目文档
 ├── package.json        # 项目配置
-├── vercel.json         # Vercel部署配置
 ├── .gitignore          # Git忽略文件
 └── DEPLOY.md           # 本部署文档
 ```
