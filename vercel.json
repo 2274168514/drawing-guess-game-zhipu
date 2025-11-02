@@ -1,34 +1,6 @@
 {
   "version": 2,
   "name": "drawing-game-zhipu-ai",
-  "builds": [
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "game.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "README.md",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/game.js",
-      "dest": "/game.js"
-    },
-    {
-      "src": "/README.md",
-      "dest": "/README.md"
-    }
-  ],
   "cleanUrls": true,
   "trailingSlash": false
 }
