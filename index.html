@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你画我猜游戏 - 智谱清言AI版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #000000;
+            --primary-light: #27272A;
+            --secondary: #ffffff;
+            --accent: #9747FF;
+            --success: #4CAF50;
+            --warning: #FFA500;
+            --danger: #EF4444;
+            --gray-50: #FAFAFA;
+            --gray-100: #F5F5F5;
+            --gray-200: #E5E5E5;
+            --gray-300: #D4D4D4;
+            --gray-400: #A3A3A3;
+            --gray-500: #737373;
+            --gray-600: #525252;
+            --gray-700: #404040;
+            --gray-800: #262626;
+            --gray-900: #171717;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--gray-50);
+            height: 100vh;
+            color: var(--gray-900);
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header */
+        .header {
+            background: var(--secondary);
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-sm);
+            flex-shrink: 0;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-200);
+            min-width: 100px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1;
+        }
+
+        /* Main Layout */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 1rem;
+            height: calc(100vh - 80px);
+            overflow: hidden;
+        }
+
+        /* Drawing Area */
+        .drawing-section {
+            background: var(--secondary);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: var(--gray-50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow: hidden;
+            min-height: 600px;
+        }
+
+        #canvas {
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            cursor: crosshair;
+            transition: all 0.2s ease;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #canvas:hover {
+            box-shadow: inset 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        #canvas.eraser-mode {
+            cursor: grab;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: var(--secondary);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-header {
+            margin-bottom: 0.5rem;
+        }
+
+        .card-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 0.125rem;
+        }
+
+        .card-description {
+            font-size: 0.625rem;
+            color: var(--gray-500);
+        }
+
+        /* Timer */
+        .timer-display {
+            background: linear-gradient(135deg, var(--danger) 0%, #DC2626 100%);
+            color: white;
+            padding: 0.75rem;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timer-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .timer-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 0.25rem;
+        }
+
+        .timer-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        .timer-value.warning {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Tools */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .tool-btn {
+            padding: 0.75rem;
+            border: 2px solid var(--gray-200);
+            background: var(--secondary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .tool-btn:hover {
+            border-color: var(--accent);
+            background: var(--gray-50);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .tool-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .tool-icon {
+            font-size: 1.25rem;
+        }
+
+        /* Color Palette */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.5rem;
+        }
+
+        .color-btn {
+            aspect-ratio: 1;
+            border: 3px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .color-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .color-btn:hover::before {
+            opacity: 1;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-md);
+        }
+
+        .color-btn.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        /* Brush Sizes */
+        .size-slider {
+            margin-top: 1rem;
+        }
+
+        .size-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            background: var(--gray-50);
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+
+        .size-dot {
+            background: var(--primary);
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .size-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--gray-200);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .size-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+        }
+
+        .size-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* AI Guess Section */
+        .ai-section {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--gray-800) 100%);
+            color: white;
+            border: none;
+        }
+
+        .ai-guess-display {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin: 0.75rem 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .ai-guess-text {
+            font-size: 1rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .ai-guess-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .ai-guess-btn:hover:not(:disabled) {
+            background: #8B5CF6;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .ai-guess-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Loading State */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .sidebar {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .stats-bar {
+                width: 100%;
+                justify-content: space-around;
+            }
+
+            .main-container {
+                padding: 1rem;
+            }
+
+            .sidebar {
+                grid-template-columns: 1fr;
+            }
+
+            .tool-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .color-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .scale-in {
+            animation: scaleIn 0.2s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* Current Word Display */
+        .current-word-display {
+            background: linear-gradient(135deg, var(--accent) 0%, #8B5CF6 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .current-word-display:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .current-word-display:active {
+            transform: translateY(0);
+        }
+
+        /* Timer Controls */
+        .timer-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .timer-btn {
+            padding: 0.5rem;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .timer-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .timer-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* User Guess Input */
+        .user-guess-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        #userGuessInput {
+            flex: 1;
+            padding: 0.5rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        #userGuessInput:focus {
+            border-color: var(--accent);
+        }
+
+        .guess-submit-btn {
+            padding: 0.5rem 1rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .guess-submit-btn:hover {
+            background: #8B5CF6;
+        }
+
+        .guess-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🎨</div>
+                <div class="logo-text">你画我猜 - 智谱AI版</div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">当前得分</span>
+                    <span class="stat-value" id="currentScore">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">最高得分</span>
+                    <span class="stat-value" id="highScore">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">回合</span>
+                    <span class="stat-value" id="round">1</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Drawing Section -->
+        <section class="drawing-section">
+            <div class="canvas-container">
+                <canvas id="canvas"></canvas>
+            </div>
+        </section>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Current Word Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📝 当前词汇</h3>
+                    <p class="card-description">画出示中的词汇</p>
+                </div>
+                <div class="current-word-display" id="currentWordDisplay">
+                    点击开始游戏获取词汇
+                </div>
+            </div>
+
+            <!-- Timer Card -->
+            <div class="card">
+                <div class="timer-display">
+                    <div class="timer-label">⏰ 剩余时间</div>
+                    <div class="timer-value" id="timer">60</div>
+                </div>
+                <div class="timer-controls">
+                    <button class="timer-btn" id="pauseBtn">⏸️ 暂停</button>
+                    <button class="timer-btn" id="newWordBtn">🔄 新词汇</button>
+                </div>
+            </div>
+
+            <!-- Tools Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🛠️ 绘画工具</h3>
+                    <p class="card-description">选择合适的工具进行创作</p>
+                </div>
+                <div class="tool-grid">
+                    <button class="tool-btn active" data-tool="pen">
+                        <span class="tool-icon">✏️</span>
+                        <span>画笔</span>
+                    </button>
+                    <button class="tool-btn" data-tool="eraser">
+                        <span class="tool-icon">🧹</span>
+                        <span>橡皮</span>
+                    </button>
+                    <button class="tool-btn" data-tool="clear">
+                        <span class="tool-icon">🗑️</span>
+                        <span>清空</span>
+                    </button>
+                    <button class="tool-btn" data-tool="undo">
+                        <span class="tool-icon">↩️</span>
+                        <span>撤销</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Color Palette Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🎨 调色板</h3>
+                    <p class="card-description">选择你喜欢的颜色</p>
+                </div>
+                <div class="color-grid">
+                    <div class="color-btn active" style="background: #000000" data-color="#000000"></div>
+                    <div class="color-btn" style="background: #FF0000" data-color="#FF0000"></div>
+                    <div class="color-btn" style="background: #00FF00" data-color="#00FF00"></div>
+                    <div class="color-btn" style="background: #0000FF" data-color="#0000FF"></div>
+                    <div class="color-btn" style="background: #FFFF00" data-color="#FFFF00"></div>
+                    <div class="color-btn" style="background: #FF00FF" data-color="#FF00FF"></div>
+                    <div class="color-btn" style="background: #00FFFF" data-color="#00FFFF"></div>
+                    <div class="color-btn" style="background: #FFA500" data-color="#FFA500"></div>
+                    <div class="color-btn" style="background: #800080" data-color="#800080"></div>
+                    <div class="color-btn" style="background: #FFC0CB" data-color="#FFC0CB"></div>
+                    <div class="color-btn" style="background: #A52A2A" data-color="#A52A2A"></div>
+                    <div class="color-btn" style="background: #808080" data-color="#808080"></div>
+                </div>
+            </div>
+
+            <!-- Brush Size Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📏 画笔大小</h3>
+                    <p class="card-description">调整画笔粗细</p>
+                </div>
+                <div class="size-preview">
+                    <div class="size-dot" id="sizePreview"></div>
+                </div>
+                <input type="range" class="size-slider" id="sizeSlider" min="1" max="50" value="5">
+            </div>
+
+            <!-- User Guess Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🎯 猜一猜</h3>
+                    <p class="card-description">你画的是什么？</p>
+                </div>
+                <div class="user-guess-input">
+                    <input type="text" id="userGuessInput" placeholder="输入你的答案" maxlength="10">
+                    <button class="guess-submit-btn" id="userGuessBtn">提交</button>
+                </div>
+            </div>
+
+            <!-- AI Guess Card -->
+            <div class="card ai-section">
+                <div class="card-header">
+                    <h3 class="card-title">🧠 智谱清言 AI 猜测</h3>
+                    <p class="card-description">让智谱清言AI来猜猜你画的是什么</p>
+                </div>
+                <div class="ai-guess-display">
+                    <div class="ai-guess-text" id="aiGuess">等待你的画作...</div>
+                </div>
+                <button class="ai-guess-btn" id="guessBtn">
+                    <span>🎯</span>
+                    <span>让智谱AI猜一猜</span>
+                </button>
+            </div>
+        </aside>
+    </main>
+
+    <script src="game.js"></script>
+</body>
+</html>
